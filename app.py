@@ -5,16 +5,14 @@ import os
 import random
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # مهم جداً للسماح بالاتصال من Netlify
 
 TEMP_FOLDER = 'temp_videos'
 if not os.path.exists(TEMP_FOLDER):
     os.makedirs(TEMP_FOLDER)
 
-# نسمح بـ GET و POST الآن
 @app.route('/download', methods=['GET', 'POST'])
 def download_video():
-    # دعم كلا الطريقتين لجلب الرابط
     if request.method == 'POST':
         data = request.json
         url = data.get('url')
@@ -22,7 +20,7 @@ def download_video():
         url = request.args.get('url')
 
     if not url:
-        return jsonify({"status": "error", "error": "الرجاء إدخال رابط صحيح"}), 400
+        return jsonify({"status": "error", "error": "الرابط مطلوب"}), 400
 
     user_agents = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -49,14 +47,15 @@ def download_video():
             ydl.download([url])
         
         if os.path.exists(filepath):
-            # إرسال الملف للمستخدم للتحميل المباشر
             return send_file(filepath, as_attachment=True, download_name=f"video_no_watermark.mp4")
         else:
-            return jsonify({"status": "error", "error": "فشل تحميل الفيديو"}), 500
+            return jsonify({"status": "error", "error": "فشل التحميل"}), 500
 
     except Exception as e:
         print(f"Error: {str(e)}")
-        return jsonify({"status": "error", "error": "حدث خطأ أثناء المعالجة"}), 500
+        return jsonify({"status": "error", "error": "خطأ في المعالجة"}), 500
 
+# هذا السطر هو الأهم لـ Railway و Render
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
